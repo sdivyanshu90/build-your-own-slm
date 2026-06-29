@@ -1,0 +1,39 @@
+# Version control
+.git
+.gitignore
+
+# Python caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Test / coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Local data & checkpoints (mounted at runtime, never baked into image)
+data/
+checkpoints/
+artifacts/
+runs/
+logs/
+*.bin
+*.pt
+*.ckpt
+
+# Docs & dev tooling not needed in the runtime image
+docs/
+.github/
+.pre-commit-config.yaml
+*.md
+!README.md
+
+# Secrets
+.env
+.env.*
+!.env.example

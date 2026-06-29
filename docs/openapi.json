@@ -1,0 +1,434 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BYO-SLM Inference API",
+    "description": "Serve a from-scratch GPT-style Small Language Model.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Liveness probe",
+        "description": "Liveness: the process is up and serving. Always ``ok`` if reachable.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness probe",
+        "description": "Readiness: returns ``503`` until the model is loaded and able to serve.",
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "List available models",
+        "operationId": "list_models_v1_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelList"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/v1/completions": {
+      "post": {
+        "tags": [
+          "inference"
+        ],
+        "summary": "Create a text completion",
+        "description": "Generate a completion, optionally streaming tokens over SSE.",
+        "operationId": "create_completion_v1_completions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Completion (JSON) or an SSE token stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompletionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key."
+          },
+          "422": {
+            "description": "Validation error."
+          },
+          "429": {
+            "description": "Rate limit exceeded."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CompletionChoice": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index",
+            "default": 0
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "finish_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "stop",
+                  "length"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finish Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "CompletionChoice"
+      },
+      "CompletionRequest": {
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "maxLength": 100000,
+            "minLength": 0,
+            "title": "Prompt",
+            "description": "Prompt text."
+          },
+          "max_tokens": {
+            "type": "integer",
+            "maximum": 8192.0,
+            "minimum": 1.0,
+            "title": "Max Tokens",
+            "description": "Max tokens to generate.",
+            "default": 128
+          },
+          "temperature": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Temperature",
+            "default": 0.8
+          },
+          "top_k": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top K",
+            "default": 40
+          },
+          "top_p": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top P",
+            "default": 0.95
+          },
+          "repetition_penalty": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 1.0,
+            "title": "Repetition Penalty",
+            "default": 1.0
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Set for reproducible sampling."
+          },
+          "stop": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop",
+            "description": "Up to 8 strings that halt generation."
+          },
+          "stream": {
+            "type": "boolean",
+            "title": "Stream",
+            "description": "Stream tokens via SSE when true.",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "title": "CompletionRequest",
+        "description": "A text-completion request."
+      },
+      "CompletionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "object": {
+            "type": "string",
+            "const": "text_completion",
+            "title": "Object",
+            "default": "text_completion"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/CompletionChoice"
+            },
+            "type": "array",
+            "title": "Choices"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "model",
+          "choices",
+          "usage"
+        ],
+        "title": "CompletionResponse"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "starting",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "model_loaded": {
+            "type": "boolean",
+            "title": "Model Loaded"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "model_loaded"
+        ],
+        "title": "HealthResponse"
+      },
+      "ModelInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "object": {
+            "type": "string",
+            "const": "model",
+            "title": "Object",
+            "default": "model"
+          },
+          "parameters": {
+            "type": "integer",
+            "title": "Parameters"
+          },
+          "parameters_human": {
+            "type": "string",
+            "title": "Parameters Human"
+          },
+          "context_length": {
+            "type": "integer",
+            "title": "Context Length"
+          },
+          "n_layer": {
+            "type": "integer",
+            "title": "N Layer"
+          },
+          "n_head": {
+            "type": "integer",
+            "title": "N Head"
+          },
+          "n_embd": {
+            "type": "integer",
+            "title": "N Embd"
+          },
+          "device": {
+            "type": "string",
+            "title": "Device"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "parameters",
+          "parameters_human",
+          "context_length",
+          "n_layer",
+          "n_head",
+          "n_embd",
+          "device"
+        ],
+        "title": "ModelInfo"
+      },
+      "ModelList": {
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "list",
+            "title": "Object",
+            "default": "list"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ModelInfo"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ModelList"
+      },
+      "Usage": {
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "title": "Prompt Tokens"
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "title": "Completion Tokens"
+          },
+          "total_tokens": {
+            "type": "integer",
+            "title": "Total Tokens"
+          }
+        },
+        "type": "object",
+        "required": [
+          "prompt_tokens",
+          "completion_tokens",
+          "total_tokens"
+        ],
+        "title": "Usage"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  }
+}

@@ -1,0 +1,55 @@
+# =============================================================================
+# Local production-like stack: the inference API plus a Prometheus scraper.
+# Usage:
+#   docker compose up --build          # start API (+ Prometheus)
+#   docker compose up api              # API only
+# Place a trained model under ./checkpoints/<name> and set SLM_MODEL_DIR.
+# =============================================================================
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: byo-slm:latest
+    container_name: byo-slm-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      SLM_ENV: production
+      SLM_LOG_JSON: "true"
+      SLM_MODEL_DIR: /app/checkpoints/tiny
+      SLM_DEVICE: cpu
+      # Set real keys in production. Empty => auth disabled (NOT for prod).
+      SLM_API_KEYS: ${SLM_API_KEYS:-}
+      SLM_RATE_LIMIT_PER_MINUTE: ${SLM_RATE_LIMIT_PER_MINUTE:-60}
+    volumes:
+      # Mount trained checkpoints read-only into the container.
+      - ./checkpoints:/app/checkpoints:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: byo-slm-prometheus
+    restart: unless-stopped
+    profiles: ["monitoring"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - api

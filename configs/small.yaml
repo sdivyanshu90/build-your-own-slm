@@ -1,0 +1,53 @@
+# =============================================================================
+# "small" recipe — a ~30M parameter model for a single modern GPU (>= 8 GB).
+# Expect a few hours on tiny shakespeare; swap in a larger corpus for real use.
+# =============================================================================
+name: small
+
+model:
+  vocab_size: 8192
+  block_size: 512
+  n_layer: 8
+  n_head: 8
+  n_embd: 512
+  dropout: 0.1
+  bias: false
+
+tokenizer:
+  vocab_size: 8192
+  path: ./checkpoints/small/tokenizer.json
+  special_tokens: ["<|endoftext|>"]
+
+data:
+  data_dir: ./data
+  source_url: https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+  raw_file: input.txt
+  train_bin: train.bin
+  val_bin: val.bin
+  val_fraction: 0.1
+
+optim:
+  lr: 6.0e-4
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.95
+  grad_clip: 1.0
+  decay_lr: true
+  warmup_steps: 200
+  lr_decay_steps: 20000
+  min_lr: 6.0e-5
+
+train:
+  out_dir: ./checkpoints/small
+  max_steps: 20000
+  batch_size: 64
+  grad_accum_steps: 4         # effective batch = 256 sequences
+  eval_interval: 500
+  eval_steps: 100
+  log_interval: 50
+  seed: 1337
+  device: auto
+  dtype: bfloat16
+  compile: true
+  gradient_checkpointing: false
+  always_save_checkpoint: false

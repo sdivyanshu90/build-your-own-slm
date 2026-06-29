@@ -1,0 +1,63 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+downloads/
+*.egg-info/
+.eggs/
+*.egg
+wheels/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Test / coverage artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+
+# Model artifacts & datasets (large, reproducible). Ignore contents but keep the
+# directories via .gitkeep (a parent-dir ignore would also hide the .gitkeep).
+data/*
+!data/.gitkeep
+checkpoints/*
+!checkpoints/.gitkeep
+artifacts/
+runs/
+*.bin
+*.pt
+*.ckpt
+*.safetensors
+
+# Tokenizer outputs (generated)
+*.tokenizer.json
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Secrets / local env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+commit_each_file.sh

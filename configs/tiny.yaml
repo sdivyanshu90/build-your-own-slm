@@ -1,0 +1,56 @@
+# =============================================================================
+# "tiny" recipe — a small (~1.3M non-embedding param) model that trains in a few
+# minutes on a GPU (or up to ~1 hour on CPU). Ideal for smoke-testing the full
+# pipeline end to end. Lower `max_steps` for a quicker demo.
+# =============================================================================
+name: tiny
+
+model:
+  vocab_size: 4096      # kept in sync with tokenizer.vocab_size
+  block_size: 256       # context window (tokens)
+  n_layer: 4
+  n_head: 4
+  n_embd: 128
+  dropout: 0.1
+  bias: false
+
+tokenizer:
+  vocab_size: 4096
+  path: ./checkpoints/tiny/tokenizer.json
+  special_tokens: ["<|endoftext|>"]
+
+data:
+  data_dir: ./data
+  # Tiny Shakespeare (~1 MB). Remove source_url and drop your own input.txt to
+  # train on a custom corpus.
+  source_url: https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+  raw_file: input.txt
+  train_bin: train.bin
+  val_bin: val.bin
+  val_fraction: 0.1
+
+optim:
+  lr: 1.0e-3
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.99
+  grad_clip: 1.0
+  decay_lr: true
+  warmup_steps: 100
+  lr_decay_steps: 2000
+  min_lr: 1.0e-4
+
+train:
+  out_dir: ./checkpoints/tiny
+  max_steps: 2000
+  batch_size: 32
+  grad_accum_steps: 1
+  eval_interval: 250
+  eval_steps: 50
+  log_interval: 25
+  seed: 1337
+  device: auto
+  dtype: bfloat16
+  compile: false
+  gradient_checkpointing: false
+  always_save_checkpoint: false
